@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wikipedia Fetcher</title>
+
+    <!-- FONT IMPORT: From Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+
+    <style>
+        /* A little CSS reset */
+        * {
+            box-sizing: border-box;
+        }
+
+        /* --- GRADIENT BACKGROUND --- */
+        @keyframes gradient-animation {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        body {
+            font-family: 'Instrument Serif', serif;
+            color: #1c1e21;
+            letter-spacing: 0.5px;
+            display: flex;
+            flex-direction: column; /* Stack items vertically */
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(-45deg, #667eea, #764ba2, #23a6d5, #23d5ab);
+            background-size: 400% 400%;
+            animation: gradient-animation 15s ease infinite;
+        }
+
+        /* --- NEW MAIN CONTENT WRAPPER --- */
+        .main-content {
+            flex: 1 0 auto; /* This makes the main area grow */
+            display: flex;
+            align-items: center; /* Vertically center the container */
+            justify-content: center; /* Horizontally center the container */
+            padding: 20px;
+        }
+
+        /* --- GLASSMORPHISM CONTAINER --- */
+        .container {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px); /* For Safari */
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2);
+            padding: 40px;
+            width: 100%;
+            max-width: 650px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.8rem;
+            font-weight: 700;
+            color: #1c1e21;
+            letter-spacing: 1px;
+            margin-bottom: 25px;
+        }
+
+        .search-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        .search-input {
+            flex-grow: 1;
+            padding: 15px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: 'Instrument Serif', serif;
+            background: rgba(255, 255, 255, 0.5);
+            transition: box-shadow 0.2s;
+        }
+        .search-input:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.4);
+        }
+
+        .search-button {
+            padding: 15px 25px;
+            border: none;
+            border-radius: 8px;
+            background-color: #1877f2;
+            color: white;
+            font-size: 1rem;
+            font-family: 'Instrument Serif', serif;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .search-button:hover {
+            background-color: #166fe5;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        /* --- FADE-IN ANIMATION --- */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .result-card, .suggestions-card, .error-message {
+            margin-top: 25px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 12px;
+            text-align: left;
+            background-color: rgba(255, 255, 255, 0.7);
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        .result-card h2 { margin-top: 0; }
+        .result-card a { color: #1877f2; text-decoration: none; font-weight: bold; }
+        .suggestions-card h3 { margin-top: 0; color: #333; }
+        .suggestions-list { list-style-type: none; padding-left: 0; }
+        .suggestions-list li { margin-bottom: 10px; }
+        .suggestion-button { background:none; border:none; padding:0; color:#1877f2; text-decoration:underline; cursor:pointer; font-size: 1rem; font-family: 'Instrument Serif', serif; text-align: left; }
+        .suggestion-button:hover { color: #166fe5; }
+        .error-message { background-color: #fbe3e4; color: #a94442; border: 1px solid #f5c6cb; }
+
+        /* --- LOADING SPINNER --- */
+        .loader {
+            width: 18px;
+            height: 18px;
+            border: 2px solid #FFF;
+            border-bottom-color: transparent;
+            border-radius: 50%;
+            display: inline-block;
+            animation: rotation 1s linear infinite;
+        }
+        @keyframes rotation {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* --- FOOTER STYLES --- */
+        .footer {
+            flex-shrink: 0; /* Prevent footer from shrinking */
+            padding: 0 20px 20px; /* Top, Sides, Bottom */
+            text-align: center;
+            width: 100%;
+        }
+        .footer a {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .footer a:hover {
+            color: white;
+        }
+    </style>
+</head>
+<body>
+<!-- Main content area that will grow and center the container -->
+<main class="main-content">
+    <div class="container">
+        <h1>Wiki Fetcher</h1>
+        <form th:action="@{/search}" method="post" class="search-form" id="searchForm">
+            <input type="text" name="query" class="search-input" placeholder="Search for anything..." th:value="${lastQuery}" required>
+            <button type="submit" class="search-button">
+                <!-- We will toggle these two with JavaScript -->
+                <span class="search-text">Search</span>
+                <span class="loader" style="display:none;"></span>
+            </button>
+        </form>
+
+        <!-- Display Main Article Result -->
+        <div th:if="${article}" class="result-card">
+            <h2 th:text="${article.title()}"></h2>
+            <p th:text="${article.summary()}"></p>
+            <a th:href="${article.link()}" target="_blank">Read more on Wikipedia &rarr;</a>
+        </div>
+
+        <!-- Display Suggestions -->
+        <div th:if="${suggestions != null && !suggestions.isEmpty()}" class="suggestions-card">
+            <h3>Did you mean:</h3>
+            <ul class="suggestions-list">
+                <li th:each="suggestion : ${suggestions}">
+                    <form th:action="@{/search}" method="post" style="display: inline;">
+                        <input type="hidden" name="query" th:value="${suggestion}" />
+                        <button type="submit" th:text="${suggestion}" class="suggestion-button"></button>
+                    </form>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Display Error Message -->
+        <div th:if="${error}" class="error-message">
+            <p th:text="${error}"></p>
+        </div>
+    </div>
+</main>
+
+<!-- GITHUB FOOTER -->
+<footer class="footer">
+    <a href="https://github.com/yajneshx94" target="_blank" rel="noopener noreferrer">yajneshx94</a>
+</footer>
+
+<!-- JAVASCRIPT FOR LOADING SPINNER -->
+<script>
+    document.getElementById('searchForm').addEventListener('submit', function() {
+        // Show the loader and hide the text when the form is submitted
+        document.querySelector('.search-text').style.display = 'none';
+        document.querySelector('.loader').style.display = 'inline-block';
+    });
+</script>
+</body>
+</html>
